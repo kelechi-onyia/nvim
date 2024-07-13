@@ -1,6 +1,6 @@
 -- since this is just an example spec, don't actually load anything here and return an empty spec
 -- stylua: ignore
-if true then return {} end
+-- if true then return {} end
 
 -- every spec file under the "plugins" directory will be loaded automatically by lazy.nvim
 --
@@ -11,12 +11,12 @@ if true then return {} end
 return {
   -- add gruvbox
   { "ellisonleao/gruvbox.nvim" },
-
+  { "catppuccin/nvim", name = "catppuccin", priority = 1000 },
   -- Configure LazyVim to load gruvbox
   {
     "LazyVim/LazyVim",
     opts = {
-      colorscheme = "gruvbox",
+      colorscheme = "catppuccin",
     },
   },
 
@@ -28,7 +28,7 @@ return {
   },
 
   -- disable trouble
-  { "folke/trouble.nvim", enabled = false },
+  { "folke/trouble.nvim", enabled = true },
 
   -- override nvim-cmp and add cmp-emoji
   {
@@ -43,10 +43,15 @@ return {
   -- change some telescope options and a keymap to browse plugin files
   {
     "nvim-telescope/telescope.nvim",
+    dependencies = {
+      "nvim-lua/plenary.nvim",
+      "nvim-telescope/telescope-live-grep-args.nvim",
+      version = "^1.0.0",
+    },
     keys = {
       -- add a keymap to browse plugin files
       -- stylua: ignore
-      {
+     {
         "<leader>fp",
         function() require("telescope.builtin").find_files({ cwd = require("lazy.core.config").options.root }) end,
         desc = "Find Plugin File",
