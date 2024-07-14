@@ -13,5 +13,9 @@ vim.opt.expandtab = true
 
 vim.keymap.set("n", "<leader>h", ":nohlsearch<CR>")
 
+--  markdown preview in a browser
+vim.keymap.set("n", "<leader>pu", ":MarkdownPreview<CR>")
+vim.keymap.set("n", "<leader>ps", ":MarkdownPreviewStop<CR>")
+
 -- show line when nvim is open
 vim.wo.relativenumber = true
