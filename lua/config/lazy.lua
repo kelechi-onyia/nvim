@@ -16,7 +16,13 @@ end
 vim.opt.rtp:prepend(lazypath)
 vim.g.mapleader = " "
 vim.g.maplocalleader = " "
-
+vim.g.completion_chain_complete_list = {
+  org = {
+    { mode = "omni" },
+  },
+}
+-- add additional keyword chars
+vim.cmd([[autocmd FileType org setlocal iskeyword+=:,#,+]])
 require("lazy").setup({
   spec = {
     -- add LazyVim and import its plugins
