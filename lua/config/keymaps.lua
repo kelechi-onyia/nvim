@@ -19,3 +19,12 @@ vim.keymap.set("n", "<leader>ps", ":MarkdownPreviewStop<CR>")
 
 -- show line when nvim is open
 vim.wo.relativenumber = true
+
+-- nvim-tree configuration
+vim.g.loaded_netrw = 1
+vim.g.loaded_netrwPlugin = 1
+
+-- optionally enable 24-bit colour
+vim.opt.termguicolors = true
+
+vim.keymap.set("n", "<c-n>", ":NvimTreeFindFileToggle<CR>")

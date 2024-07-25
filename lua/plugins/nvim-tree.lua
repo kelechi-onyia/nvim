@@ -6,6 +6,21 @@ return {
     "nvim-tree/nvim-web-devicons",
   },
   config = function()
-    require("nvim-tree").setup({})
+    -- OR setup with some options
+    require("nvim-tree").setup({
+      sort = {
+        sorter = "case_sensitive",
+      },
+      view = {
+        width = 30,
+        adaptive_size = true,
+      },
+      renderer = {
+        group_empty = false,
+      },
+      filters = {
+        dotfiles = true,
+      },
+    })
   end,
 }
