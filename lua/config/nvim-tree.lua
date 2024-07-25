@@ -26,5 +26,3 @@ require("nvim-tree").setup({
     dotfiles = true,
   },
 })
-
-v
