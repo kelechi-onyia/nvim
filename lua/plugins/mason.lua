@@ -5,6 +5,7 @@ return {
     "williamboman/mason.nvim",
     opts = {
       ensure_installed = {
+        "alex",
         "angular-language-server",
         "ansible-language-server",
         "ansible-lint",
