@@ -1,7 +1,7 @@
-if true then
-  return {}
-end
-
+-- if true then
+--   return {}
+-- end
+--
 return {
 
   -- add any tools you want to have installed below
@@ -9,6 +9,8 @@ return {
     "williamboman/mason.nvim",
     opts = {
       ensure_installed = {
+        "sonarlint-language-server",
+        "xmlformatter",
         "alex",
         "angular-language-server",
         "ansible-language-server",
