@@ -17,9 +17,18 @@ return {
       },
       renderer = {
         group_empty = false,
+        icons = {
+          show = {
+            git = true,
+          },
+        },
       },
       filters = {
-        dotfiles = true,
+        dotfiles = false,
+      },
+      git = {
+        ignore = false,
+        enable = true,
       },
     })
   end,
