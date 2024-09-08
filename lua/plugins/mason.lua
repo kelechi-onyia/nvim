@@ -36,7 +36,7 @@ return {
         "sonarlint-language-server",
         "stylua",
         "termux-language-server",
-        "terraform-ls terraformls",
+        "terraform-ls",
         "trivy",
         "typescript-language-server",
         "vtsls",
