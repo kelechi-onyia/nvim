@@ -12,7 +12,7 @@ return {
         "pyright",
         "templ",
         "actionlint",
-        "ansible-language-serve",
+        "ansible-language-server",
         "ansible-lint",
         "bash-language-server",
         "beautysh",
