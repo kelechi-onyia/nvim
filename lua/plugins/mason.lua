@@ -1,6 +1,6 @@
-if true then
-  return {}
-end
+-- if true then
+--   return {}
+-- end
 
 return {
 
@@ -9,30 +9,42 @@ return {
     "williamboman/mason.nvim",
     opts = {
       ensure_installed = {
-        "xmlformatter",
-        "angular-language-server",
-        "ansible-language-server",
+        "pyright",
+        "templ",
+        "actionlint",
+        "ansible-language-serve",
         "ansible-lint",
-        "css-variables-language-server",
+        "bash-language-server",
+        "beautysh",
         "docker-compose-language-service",
         "dockerfile-language-server",
-        "gradle-language-server",
-        "graphql-language-service-cli",
+        "golangci-lint-langserver",
         "helm-ls",
-        "htmlhint",
-        "jsonlint",
-        "kotlin-language-server",
+        "html-lsp",
+        "htmlbeautifier",
         "lua-language-server",
-        "luacheck",
         "markdownlint",
-        "pylint",
-        "pyright",
-        "python-lsp-server",
+        "npm-groovy-lint",
+        "opa",
+        "prettier",
+        "prettierd",
+        "regal",
+        "regols",
         "shellcheck",
-        "sql-formatter",
-        "sqlfmt",
-        "stylelint",
+        "shfmt",
+        "snyk",
+        "sonarlint-language-server",
         "stylua",
+        "termux-language-server",
+        "terraform-ls terraformls",
+        "trivy",
+        "typescript-language-server",
+        "vtsls",
+        "yaml-language-server",
+        "yamlfix",
+        "yamlfmt",
+        "yamllint",
+        "yq",
         "usort",
       },
     },
