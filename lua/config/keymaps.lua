@@ -21,8 +21,6 @@ vim.keymap.set("n", "<leader>Ps", ":MarkdownPreviewStop<CR>", { desc = "Stop Mar
 vim.keymap.set("n", "<leader>fd", ":windo diffthis<CR>", { desc = "file diff", silent = true })
 vim.keymap.set("n", "<leader>fx", ":windo diffoff<CR>", { desc = "diff off", silent = true })
 vim.keymap.set("n", "<leader>fs", ":diffsplit<CR>", { desc = "diff split", silent = true })
-vim.keymap.set("n", "<leader>Pu", ":MarkdownPreview<CR>")
-vim.keymap.set("n", "<leader>Ps", ":MarkdownPreviewStop<CR>")
 
 -- show line when nvim is open
 vim.wo.relativenumber = true
