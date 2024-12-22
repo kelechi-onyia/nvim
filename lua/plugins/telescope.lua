@@ -6,6 +6,7 @@ return {
     dependencies = {
       "nvim-lua/plenary.nvim",
       "nvim-telescope/telescope-live-grep-args.nvim",
+      "nvim-tree/nvim-web-devicons",
     },
     keys = {
       -- add a keymap to browse plugin files
