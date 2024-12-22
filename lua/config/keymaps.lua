@@ -32,5 +32,5 @@ vim.g.loaded_netrwPlugin = 1
 -- optionally enable 24-bit colour
 vim.opt.termguicolors = true
 
-vim.keymap.set("n", "<c-n>", ":NvimTreeToggle<CR>")
-vim.keymap.set("n", "<c-m>", ":NvimTreeFindFile<CR>")
+-- vim.keymap.set("n", "<c-n>", ":NvimTreeToggle<CR>")
+-- vim.keymap.set("n", "<c-m>", ":NvimTreeFindFile<CR>")

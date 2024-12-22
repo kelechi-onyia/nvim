@@ -1,7 +1,7 @@
 return {
   -- disable neo-tree
-  { "nvim-neo-tree/neo-tree.nvim", enabled = false },
+  { "nvim-neo-tree/neo-tree.nvim", enabled = true },
 
   -- default lazyvim plugin
-  { "nvim-tree/nvim-tree.lua", enabled = true },
+  { "nvim-tree/nvim-tree.lua", enabled = false },
 }
