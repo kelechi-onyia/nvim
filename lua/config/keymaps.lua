@@ -34,3 +34,5 @@ vim.opt.termguicolors = true
 
 -- vim.keymap.set("n", "<c-n>", ":NvimTreeToggle<CR>")
 -- vim.keymap.set("n", "<c-m>", ":NvimTreeFindFile<CR>")
+
+vim.keymap.set({ "n", "i", "x" }, "<Cmd-s>", ":w<CR>", { desc = "Save File", silent = true })
