@@ -1,21 +1,18 @@
 -- if true then
 --   return {}
 -- end
-
 return {
-
   -- add any tools you want to have installed below
   {
     "williamboman/mason.nvim",
     opts = {
       ensure_installed = {
-        "pyright",
-        "templ",
         "actionlint",
         "ansible-language-server",
         "ansible-lint",
         "bash-language-server",
         "beautysh",
+        "copilot-language-server",
         "docker-compose-language-service",
         "dockerfile-language-server",
         "golangci-lint-langserver",
@@ -28,6 +25,7 @@ return {
         "opa",
         "prettier",
         "prettierd",
+        "pyright",
         "regal",
         "regols",
         "shellcheck",
@@ -35,17 +33,18 @@ return {
         "snyk",
         "sonarlint-language-server",
         "stylua",
+        "templ",
         "termux-language-server",
         "terraform-ls",
         "trivy",
         "typescript-language-server",
+        "usort",
         "vtsls",
         "yaml-language-server",
         "yamlfix",
         "yamlfmt",
         "yamllint",
         "yq",
-        "usort",
       },
     },
   },
