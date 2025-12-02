@@ -37,7 +37,6 @@ return {
         "termux-language-server",
         "terraform-ls",
         "trivy",
-        "typescript-language-server",
         "usort",
         "vtsls",
         "yaml-language-server",
