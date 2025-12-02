@@ -25,4 +25,19 @@ return {
       },
     },
   },
+
+  -- disable markdown LSP
+  {
+    "neovim/nvim-lspconfig",
+    opts = {
+      servers = {
+        marksman = {
+          enabled = false,
+        },
+        markdown_oxide = {
+          enabled = false,
+        },
+      },
+    },
+  },
 }

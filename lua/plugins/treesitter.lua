@@ -21,6 +21,10 @@ return {
         "terraform",
         "groovy",
       },
+      highlight = {
+        enable = true,
+        disable = { "markdown" }, -- disable markdown syntax highlighting
+      },
     },
   },
 }
