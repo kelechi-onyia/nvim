@@ -28,10 +28,14 @@ end
 
 -- the remote's default branch, e.g. "origin/main" (from origin/HEAD, falling back to origin/main)
 local function base_branch(root, cb)
-  vim.system({ "git", "symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD" }, { text = true, cwd = root }, function(r)
-    local base = vim.trim(r.stdout or "")
-    cb(r.code == 0 and base ~= "" and base or "origin/main")
-  end)
+  vim.system(
+    { "git", "symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD" },
+    { text = true, cwd = root },
+    function(r)
+      local base = vim.trim(r.stdout or "")
+      cb(r.code == 0 and base ~= "" and base or "origin/main")
+    end
+  )
 end
 
 -- VS Code-style sync status (↓ to pull, ↑ to push) as lines under the file panel's "Changes (N)"
@@ -392,23 +396,27 @@ local function start_autofetch()
     return
   end
   fetch_timer = vim.uv.new_timer()
-  fetch_timer:start(AUTOFETCH_MS, AUTOFETCH_MS, vim.schedule_wrap(function()
-    local views = require("diffview.lib").views
-    if #views == 0 then
-      fetch_timer:stop()
-      fetch_timer:close()
-      fetch_timer = nil
-      return
-    end
-    local seen = {}
-    for _, view in ipairs(views) do
-      local root = repo_root(view)
-      if not seen[root] then
-        seen[root] = true
-        update_sync(root, true)
+  fetch_timer:start(
+    AUTOFETCH_MS,
+    AUTOFETCH_MS,
+    vim.schedule_wrap(function()
+      local views = require("diffview.lib").views
+      if #views == 0 then
+        fetch_timer:stop()
+        fetch_timer:close()
+        fetch_timer = nil
+        return
       end
-    end
-  end))
+      local seen = {}
+      for _, view in ipairs(views) do
+        local root = repo_root(view)
+        if not seen[root] then
+          seen[root] = true
+          update_sync(root, true)
+        end
+      end
+    end)
+  )
 end
 
 local function commit()
