@@ -66,6 +66,15 @@ local section_ns = vim.api.nvim_create_namespace("diffview_section_colors")
 
 local function setup_section_hl()
   vim.api.nvim_set_hl(0, "DiffviewUnstagedText", { fg = "#f5a97f" }) -- catppuccin peach / orange
+
+  -- sync-line palette (catppuccin macchiato): arrows bold so they pop, key
+  -- hints dimmed, so push/pull reads at a glance.
+  vim.api.nvim_set_hl(0, "DiffviewPush", { fg = "#a6da95", bold = true }) -- green: ahead, ready to push
+  vim.api.nvim_set_hl(0, "DiffviewPull", { fg = "#8aadf4", bold = true }) -- blue: behind, pull
+  vim.api.nvim_set_hl(0, "DiffviewPublish", { fg = "#c6a0f6", bold = true }) -- mauve: unpublished branch
+  vim.api.nvim_set_hl(0, "DiffviewSynced", { fg = "#8bd5ca" }) -- teal: in sync / up to date
+  vim.api.nvim_set_hl(0, "DiffviewSyncHint", { fg = "#6e738d", italic = true }) -- overlay0: dim (P)/(p)/(m)
+  vim.api.nvim_set_hl(0, "DiffviewSyncBranch", { fg = "#b8c0e0", bold = true }) -- subtext1: branch name
 end
 
 local function render_section_colors()
@@ -292,29 +301,36 @@ local function format_sync(status, unpublished, base, base_behind)
   local chunks = { { "  " } }
   if not status:match("# branch%.upstream ") then
     local n = (unpublished or 0) > 0 and unpublished or ""
-    table.insert(chunks, { "↑" .. n .. " publish (P)", "DiagnosticInfo" })
+    table.insert(chunks, { "↑" .. n .. " publish ", "DiffviewPublish" })
+    table.insert(chunks, { "(P)", "DiffviewSyncHint" })
   else
     local ahead, behind = status:match("# branch%.ab %+(%d+) %-(%d+)")
     ahead, behind = tonumber(ahead) or 0, tonumber(behind) or 0
     if ahead == 0 and behind == 0 then
-      table.insert(chunks, { "✓ in sync", "Comment" })
+      table.insert(chunks, { "✓ in sync", "DiffviewSynced" })
     end
     if behind > 0 then
-      table.insert(chunks, { "↓" .. behind .. " (p)", "DiagnosticWarn" })
+      table.insert(chunks, { "↓" .. behind .. " ", "DiffviewPull" })
+      table.insert(chunks, { "(p)", "DiffviewSyncHint" })
     end
     if behind > 0 and ahead > 0 then
-      table.insert(chunks, { " " })
+      table.insert(chunks, { "  " })
     end
     if ahead > 0 then
-      table.insert(chunks, { "↑" .. ahead .. " (P)", "DiagnosticOk" })
+      table.insert(chunks, { "↑" .. ahead .. " ", "DiffviewPush" })
+      table.insert(chunks, { "(P)", "DiffviewSyncHint" })
     end
   end
-  table.insert(chunks, { "  " .. head, "Comment" })
+  table.insert(chunks, { "  " .. head, "DiffviewSyncBranch" })
   local lines = { chunks }
   if base_behind == 0 then
-    table.insert(lines, { { "  " }, { "✓ up to date with " .. base, "Comment" } })
+    table.insert(lines, { { "  " }, { "✓ up to date with " .. base, "DiffviewSynced" } })
   elseif base_behind then
-    table.insert(lines, { { "  " }, { "↓" .. base_behind .. " from " .. base .. " (m)", "DiagnosticWarn" } })
+    table.insert(lines, {
+      { "  " },
+      { "↓" .. base_behind .. " from " .. base .. " ", "DiffviewPull" },
+      { "(m)", "DiffviewSyncHint" },
+    })
   end
   return lines
 end
