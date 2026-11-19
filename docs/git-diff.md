@@ -29,11 +29,24 @@ plus lazygit themed to look like VS Code.
 | All keymaps                    | `g?`             | `g?`          |
 | Close                          | `q`              | `q`           |
 
+### Sync status (top of the file list)
+
+Like VS Code's sync button. Fetches quietly when Diffview opens and updates after every commit/push/pull.
+
+| Shows                    | Meaning                                   |
+|--------------------------|-------------------------------------------|
+| `main  ↓2 (p)`           | 2 commits on the remote to pull — press `p` |
+| `main  ↑1 (P)`           | 1 local commit to push — press `P`        |
+| `main  ↓2 (p) ↑1 (P)`    | Both                                      |
+| `main  ✓ in sync`        | Nothing to pull or push                   |
+| `feature  ↑ publish (P)` | Branch not on the remote yet — `P` publishes it |
+
 Notes:
 
 - **Commit** prompts for a message. If nothing is staged it offers to stage everything first.
 - **Push** sets the upstream automatically on a branch's first push (`git push -u origin HEAD`).
-- **Pull** runs a plain `git pull`. If it fails with "divergent branches", pick a strategy once:
+- **Pull** runs `git pull --autostash`, so it works with uncommitted changes (they're set aside and
+  restored). If it fails with "divergent branches", pick a strategy once:
   `git config --global pull.rebase true`
 - Push/pull can't answer username or password prompts. Use SSH keys or a saved HTTPS login.
 - The right-hand pane is your real file, so you can edit it directly.

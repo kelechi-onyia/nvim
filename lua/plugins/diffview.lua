@@ -1,8 +1,8 @@
 -- VS Code-style side-by-side git diff
 
 -- git helpers so you can commit and push without leaving Diffview
-local function repo_root()
-  local view = require("diffview.lib").get_current_view()
+local function repo_root(view)
+  view = view or require("diffview.lib").get_current_view()
   return view and view.adapter.ctx.toplevel or vim.fn.getcwd()
 end
 
@@ -23,6 +23,61 @@ local function git(root, args, on_ok)
   )
 end
 
+-- VS Code-style sync status (↓ to pull, ↑ to push) in the file panel's winbar
+local sync_text = ""
+
+local function render_sync()
+  for _, view in ipairs(require("diffview.lib").views) do
+    local win = view.panel and view.panel.winid
+    if win and vim.api.nvim_win_is_valid(win) then
+      vim.wo[win].winbar = sync_text
+    end
+  end
+end
+
+local function format_sync(status)
+  local head = (status:match("# branch%.head (%S+)") or "?"):gsub("%%", "%%%%")
+  local prefix = "  " .. head .. "  "
+  if not status:match("# branch%.upstream ") then
+    return prefix .. "%#DiagnosticInfo#↑ publish (P)%*"
+  end
+  local ahead, behind = status:match("# branch%.ab %+(%d+) %-(%d+)")
+  ahead, behind = tonumber(ahead) or 0, tonumber(behind) or 0
+  if ahead == 0 and behind == 0 then
+    return prefix .. "%#Comment#✓ in sync%*"
+  end
+  local parts = {}
+  if behind > 0 then
+    table.insert(parts, "%#DiagnosticWarn#↓" .. behind .. " (p)%*")
+  end
+  if ahead > 0 then
+    table.insert(parts, "%#DiagnosticOk#↑" .. ahead .. " (P)%*")
+  end
+  return prefix .. table.concat(parts, " ")
+end
+
+local function update_sync(root, fetch)
+  local function count()
+    vim.system(
+      { "git", "status", "--porcelain=v2", "--branch", "--untracked-files=no" },
+      { text = true, cwd = root },
+      function(r)
+        vim.schedule(function()
+          sync_text = r.code == 0 and format_sync(r.stdout) or ""
+          render_sync()
+        end)
+      end
+    )
+  end
+  count()
+  if fetch then
+    -- quiet fetch so "↓ to pull" reflects the remote, then recount
+    vim.system({ "git", "fetch", "--quiet" }, { cwd = root, env = { GIT_TERMINAL_PROMPT = "0" } }, function()
+      vim.schedule(count)
+    end)
+  end
+end
+
 local function commit()
   local root = repo_root()
   local function do_commit()
@@ -33,6 +88,7 @@ local function commit()
       git(root, { "commit", "-m", msg }, function(r)
         vim.notify(vim.split(r.stdout, "\n")[1], vim.log.levels.INFO, { title = "git commit" })
         vim.cmd("DiffviewRefresh")
+        update_sync(root)
       end)
     end)
   end
@@ -61,6 +117,7 @@ local function push()
       git(root, args, function()
         vim.notify("Pushed", vim.log.levels.INFO, { title = "git push" })
         vim.cmd("DiffviewRefresh")
+        update_sync(root)
       end)
     end)
   end)
@@ -69,12 +126,17 @@ end
 local function pull()
   local root = repo_root()
   vim.notify("Pulling…", vim.log.levels.INFO, { title = "git pull" })
-  git(root, { "pull" }, function(r)
+  -- --autostash: pull even with uncommitted changes (they're restored afterwards)
+  git(root, { "pull", "--autostash" }, function(r)
     -- first and last line, e.g. "Updating a..b" + "2 files changed, ..."
-    local lines = vim.split(vim.trim(r.stdout), "\n")
+    local lines = vim.tbl_filter(function(l)
+      return not l:match("autostash")
+    end, vim.split(vim.trim(r.stdout), "\n"))
+    lines = #lines > 0 and lines or { "Pulled" }
     local msg = #lines > 1 and (lines[1] .. "\n" .. vim.trim(lines[#lines])) or lines[1]
     vim.notify(msg, vim.log.levels.INFO, { title = "git pull" })
     vim.cmd("DiffviewRefresh")
+    update_sync(root)
   end)
 end
 
@@ -140,6 +202,13 @@ return {
         diff_buf_read = function()
           vim.opt_local.wrap = false
         end,
+        view_opened = function(view)
+          update_sync(repo_root(view), true)
+        end,
+        view_enter = function(view)
+          update_sync(repo_root(view))
+        end,
+        view_post_layout = render_sync,
       },
       -- q closes Diffview; stage/commit/push work from both the file list and the diff windows
       keymaps = {
