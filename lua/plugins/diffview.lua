@@ -78,6 +78,34 @@ local function update_sync(root, fetch)
   end
 end
 
+-- background fetch every 3 minutes while Diffview is open (like VS Code's autofetch)
+local AUTOFETCH_MS = 3 * 60 * 1000
+local fetch_timer
+
+local function start_autofetch()
+  if fetch_timer then
+    return
+  end
+  fetch_timer = vim.uv.new_timer()
+  fetch_timer:start(AUTOFETCH_MS, AUTOFETCH_MS, vim.schedule_wrap(function()
+    local views = require("diffview.lib").views
+    if #views == 0 then
+      fetch_timer:stop()
+      fetch_timer:close()
+      fetch_timer = nil
+      return
+    end
+    local seen = {}
+    for _, view in ipairs(views) do
+      local root = repo_root(view)
+      if not seen[root] then
+        seen[root] = true
+        update_sync(root, true)
+      end
+    end
+  end))
+end
+
 local function commit()
   local root = repo_root()
   local function do_commit()
@@ -204,6 +232,7 @@ return {
         end,
         view_opened = function(view)
           update_sync(repo_root(view), true)
+          start_autofetch()
         end,
         view_enter = function(view)
           update_sync(repo_root(view))

@@ -31,7 +31,8 @@ plus lazygit themed to look like VS Code.
 
 ### Sync status (top of the file list)
 
-Like VS Code's sync button. Fetches quietly when Diffview opens and updates after every commit/push/pull.
+Like VS Code's sync button. Fetches quietly when Diffview opens, then every 3 minutes while it stays
+open, and updates after every commit/push/pull.
 
 | Shows                    | Meaning                                   |
 |--------------------------|-------------------------------------------|

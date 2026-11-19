@@ -26,4 +26,15 @@ return {
       },
     },
   },
+  -- dressing (pulled in by the telescope extra) sizes input boxes to the current window,
+  -- so prompts opened from narrow windows (e.g. Diffview's file list) get squeezed. Use the whole screen.
+  {
+    "stevearc/dressing.nvim",
+    opts = {
+      input = {
+        relative = "editor",
+        prefer_width = 72,
+      },
+    },
+  },
 }
