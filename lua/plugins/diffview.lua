@@ -6,7 +6,7 @@ local function repo_root(view)
   return view and view.adapter.ctx.toplevel or vim.fn.getcwd()
 end
 
-local function git(root, args, on_ok)
+local function git(root, args, on_ok, on_err)
   vim.system(
     vim.list_extend({ "git" }, args),
     { text = true, cwd = root, env = { GIT_TERMINAL_PROMPT = "0" } },
@@ -15,6 +15,9 @@ local function git(root, args, on_ok)
         if r.code ~= 0 then
           local err = vim.trim(r.stderr ~= "" and r.stderr or r.stdout)
           vim.notify(err, vim.log.levels.ERROR, { title = "git " .. args[1] })
+          if on_err then
+            on_err(r)
+          end
         elseif on_ok then
           on_ok(r)
         end
@@ -23,51 +26,110 @@ local function git(root, args, on_ok)
   )
 end
 
--- VS Code-style sync status (↓ to pull, ↑ to push) in the file panel's winbar
-local sync_text = ""
+-- the remote's default branch, e.g. "origin/main" (from origin/HEAD, falling back to origin/main)
+local function base_branch(root, cb)
+  vim.system({ "git", "symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD" }, { text = true, cwd = root }, function(r)
+    local base = vim.trim(r.stdout or "")
+    cb(r.code == 0 and base ~= "" and base or "origin/main")
+  end)
+end
+
+-- VS Code-style sync status (↓ to pull, ↑ to push) as lines under the file panel's "Changes (N)"
+local sync_lines = {}
+local sync_ns = vim.api.nvim_create_namespace("diffview_sync_status")
 
 local function render_sync()
   for _, view in ipairs(require("diffview.lib").views) do
-    local win = view.panel and view.panel.winid
-    if win and vim.api.nvim_win_is_valid(win) then
-      vim.wo[win].winbar = sync_text
+    local buf = view.panel and view.panel.bufid
+    if buf and vim.api.nvim_buf_is_valid(buf) then
+      vim.api.nvim_buf_clear_namespace(buf, sync_ns, 0, -1)
+      local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+      local row
+      for i, line in ipairs(lines) do
+        -- "Changes" is hidden when it's empty and there are staged files
+        if line:match("^Changes %(%d+%)") or (not row and line:match("^Staged changes %(%d+%)")) then
+          row = i - 1
+        end
+      end
+      if row and #sync_lines > 0 then
+        vim.api.nvim_buf_set_extmark(buf, sync_ns, row, 0, { virt_lines = sync_lines })
+      end
     end
   end
 end
 
-local function format_sync(status)
-  local head = (status:match("# branch%.head (%S+)") or "?"):gsub("%%", "%%%%")
-  local prefix = "  " .. head .. "  "
+-- status first, branch name last: the panel is narrow, so a long branch name gets cut, not the status.
+-- A second line shows commits on the default branch (e.g. origin/main) this branch doesn't have yet.
+local function format_sync(status, unpublished, base, base_behind)
+  local head = status:match("# branch%.head (%S+)") or "?"
+  local chunks = { { "  " } }
   if not status:match("# branch%.upstream ") then
-    return prefix .. "%#DiagnosticInfo#↑ publish (P)%*"
+    local n = (unpublished or 0) > 0 and unpublished or ""
+    table.insert(chunks, { "↑" .. n .. " publish (P)", "DiagnosticInfo" })
+  else
+    local ahead, behind = status:match("# branch%.ab %+(%d+) %-(%d+)")
+    ahead, behind = tonumber(ahead) or 0, tonumber(behind) or 0
+    if ahead == 0 and behind == 0 then
+      table.insert(chunks, { "✓ in sync", "Comment" })
+    end
+    if behind > 0 then
+      table.insert(chunks, { "↓" .. behind .. " (p)", "DiagnosticWarn" })
+    end
+    if behind > 0 and ahead > 0 then
+      table.insert(chunks, { " " })
+    end
+    if ahead > 0 then
+      table.insert(chunks, { "↑" .. ahead .. " (P)", "DiagnosticOk" })
+    end
   end
-  local ahead, behind = status:match("# branch%.ab %+(%d+) %-(%d+)")
-  ahead, behind = tonumber(ahead) or 0, tonumber(behind) or 0
-  if ahead == 0 and behind == 0 then
-    return prefix .. "%#Comment#✓ in sync%*"
+  table.insert(chunks, { "  " .. head, "Comment" })
+  local lines = { chunks }
+  if base_behind == 0 then
+    table.insert(lines, { { "  " }, { "✓ up to date with " .. base, "Comment" } })
+  elseif base_behind then
+    table.insert(lines, { { "  " }, { "↓" .. base_behind .. " from " .. base .. " (m)", "DiagnosticWarn" } })
   end
-  local parts = {}
-  if behind > 0 then
-    table.insert(parts, "%#DiagnosticWarn#↓" .. behind .. " (p)%*")
-  end
-  if ahead > 0 then
-    table.insert(parts, "%#DiagnosticOk#↑" .. ahead .. " (P)%*")
-  end
-  return prefix .. table.concat(parts, " ")
+  return lines
 end
 
 local function update_sync(root, fetch)
+  local function show(lines)
+    vim.schedule(function()
+      sync_lines = lines
+      render_sync()
+    end)
+  end
+  local function run(args, cb)
+    vim.system(vim.list_extend({ "git" }, args), { text = true, cwd = root }, cb)
+  end
   local function count()
-    vim.system(
-      { "git", "status", "--porcelain=v2", "--branch", "--untracked-files=no" },
-      { text = true, cwd = root },
-      function(r)
-        vim.schedule(function()
-          sync_text = r.code == 0 and format_sync(r.stdout) or ""
-          render_sync()
+    run({ "status", "--porcelain=v2", "--branch", "--untracked-files=no" }, function(r)
+      if r.code ~= 0 then
+        return show({})
+      end
+      local head = r.stdout:match("# branch%.head (%S+)")
+      local unpublished
+      local function with_base()
+        base_branch(root, function(base)
+          -- on the default branch itself, the ↓ above already covers it
+          if base == "origin/" .. head then
+            return show(format_sync(r.stdout, unpublished))
+          end
+          run({ "rev-list", "--count", "HEAD.." .. base }, function(c)
+            -- no line at all if the base branch doesn't exist (c.code ~= 0)
+            show(format_sync(r.stdout, unpublished, base, c.code == 0 and tonumber(vim.trim(c.stdout)) or nil))
+          end)
         end)
       end
-    )
+      if r.stdout:match("# branch%.upstream ") then
+        return with_base()
+      end
+      -- branch not pushed yet: count the commits no remote has
+      run({ "rev-list", "--count", "HEAD", "--not", "--remotes" }, function(c)
+        unpublished = tonumber(vim.trim(c.stdout or ""))
+        with_base()
+      end)
+    end)
   end
   count()
   if fetch then
@@ -151,20 +213,45 @@ local function push()
   end)
 end
 
-local function pull()
-  local root = repo_root()
-  vim.notify("Pulling…", vim.log.levels.INFO, { title = "git pull" })
-  -- --autostash: pull even with uncommitted changes (they're restored afterwards)
-  git(root, { "pull", "--autostash" }, function(r)
+-- args is a pull or merge; --autostash lets it run with uncommitted changes (they're restored afterwards)
+local function run_pull(root, args)
+  git(root, args, function(r)
     -- first and last line, e.g. "Updating a..b" + "2 files changed, ..."
     local lines = vim.tbl_filter(function(l)
       return not l:match("autostash")
     end, vim.split(vim.trim(r.stdout), "\n"))
     lines = #lines > 0 and lines or { "Pulled" }
     local msg = #lines > 1 and (lines[1] .. "\n" .. vim.trim(lines[#lines])) or lines[1]
-    vim.notify(msg, vim.log.levels.INFO, { title = "git pull" })
+    vim.notify(msg, vim.log.levels.INFO, { title = "git " .. args[1] })
     vim.cmd("DiffviewRefresh")
     update_sync(root)
+  end, function()
+    -- e.g. merge conflicts: show them in the file list
+    vim.cmd("DiffviewRefresh")
+    update_sync(root)
+  end)
+end
+
+local function pull()
+  vim.notify("Pulling…", vim.log.levels.INFO, { title = "git pull" })
+  run_pull(repo_root(), { "pull", "--autostash" })
+end
+
+-- bring the default branch (e.g. origin/main) into this branch, as a merge like
+-- "Merge branch 'main' into feature/..." (never a rebase, so pushed commits aren't rewritten)
+local function pull_base()
+  local root = repo_root()
+  base_branch(root, function(base)
+    local remote, branch = base:match("^([^/]+)/(.+)$")
+    vim.schedule(function()
+      vim.notify("Merging " .. base .. "…", vim.log.levels.INFO, { title = "git merge" })
+      git(root, { "fetch", "--quiet", remote, branch }, function()
+        git(root, { "branch", "--show-current" }, function(r)
+          local msg = ("Merge branch '%s' into %s"):format(branch, vim.trim(r.stdout))
+          run_pull(root, { "merge", "--autostash", "--no-edit", "-m", msg, base })
+        end)
+      end)
+    end)
   end)
 end
 
@@ -214,6 +301,16 @@ return {
   end,
   opts = function()
     local actions = require("diffview.actions")
+    -- Diffview rewrites the file panel on every redraw, which drops the sync line, so add it back
+    local FilePanel = require("diffview.scene.views.diff.file_panel").FilePanel
+    if not FilePanel.sync_status_patched then
+      local redraw = FilePanel.redraw
+      FilePanel.redraw = function(...)
+        redraw(...)
+        render_sync()
+      end
+      FilePanel.sync_status_patched = true
+    end
     local close = { "n", "q", "<cmd>DiffviewClose<cr>", { desc = "Close Diffview" } }
     return {
       enhanced_diff_hl = true, -- VS Code-like: deleted lines red on left, added green on right
@@ -224,7 +321,9 @@ return {
       },
       file_panel = {
         listing_style = "tree",
-        win_config = { position = "left", width = 35 },
+        -- blank winbar: the global one (filename) would show the panel's internal buffer name
+        -- (" ", not "": an empty window value falls back to the global one)
+        win_config = { position = "left", width = 35, win_opts = { winbar = " " } },
       },
       hooks = {
         diff_buf_read = function()
@@ -237,7 +336,6 @@ return {
         view_enter = function(view)
           update_sync(repo_root(view))
         end,
-        view_post_layout = render_sync,
       },
       -- q closes Diffview; stage/commit/push work from both the file list and the diff windows
       keymaps = {
@@ -253,6 +351,7 @@ return {
           { "n", "cc", commit, { desc = "Commit" } },
           { "n", "P", push, { desc = "Push" } },
           { "n", "p", pull, { desc = "Pull" } },
+          { "n", "m", pull_base, { desc = "Merge origin/main into this branch" } },
           { "n", "<leader>ga", actions.toggle_stage_entry, { desc = "Stage / unstage this file" } },
           { "n", "<leader>gc", commit, { desc = "Commit" } },
           { "n", "<leader>gp", push, { desc = "Push" } },

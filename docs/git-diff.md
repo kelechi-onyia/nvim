@@ -23,24 +23,33 @@ plus lazygit themed to look like VS Code.
 | Commit                         | `cc`             | `<leader>gc`  |
 | Push                           | `P`              | `<leader>gp`  |
 | Pull                           | `p`              | `<leader>gu`  |
+| Merge origin/main into branch  | `m`              |               |
 | Next / previous file           | `Tab` / `S-Tab`  | `Tab` / `S-Tab` |
 | Next / previous change         |                  | `]c` / `[c`   |
 | Toggle file list               | `<leader>b`      | `<leader>b`   |
 | All keymaps                    | `g?`             | `g?`          |
 | Close                          | `q`              | `q`           |
 
-### Sync status (top of the file list)
+### Sync status (under "Changes (N)" in the file list)
 
 Like VS Code's sync button. Fetches quietly when Diffview opens, then every 3 minutes while it stays
 open, and updates after every commit/push/pull.
 
-| Shows                    | Meaning                                   |
-|--------------------------|-------------------------------------------|
-| `main  ↓2 (p)`           | 2 commits on the remote to pull — press `p` |
-| `main  ↑1 (P)`           | 1 local commit to push — press `P`        |
-| `main  ↓2 (p) ↑1 (P)`    | Both                                      |
-| `main  ✓ in sync`        | Nothing to pull or push                   |
-| `feature  ↑ publish (P)` | Branch not on the remote yet — `P` publishes it |
+| Shows                     | Meaning                                   |
+|---------------------------|-------------------------------------------|
+| `↓2 (p)  main`            | 2 commits on the remote to pull — press `p` |
+| `↑1 (P)  main`            | 1 local commit to push — press `P`        |
+| `↓2 (p) ↑1 (P)  main`     | Both                                      |
+| `✓ in sync  main`         | Nothing to pull or push                   |
+| `↑3 publish (P)  feature` | Branch not on the remote yet, 3 commits to send — `P` publishes it |
+| `↓2 from origin/main (m)` | (second line, feature branches) main has 2 commits this branch doesn't — `m` merges them in |
+| `✓ up to date with origin/main` | (second line) this branch already has everything on main |
+
+`m` fetches main and merges it as `Merge branch 'main' into <your branch>` (never a rebase, so pushed
+commits aren't rewritten). Uncommitted changes are set aside and restored. On a conflict, the files show up
+in the file list; resolve them, then commit with `cc`. Push the merge with `P` afterwards.
+
+The status comes before the branch name, so a long branch name is cut off at the panel edge, not the status.
 
 Notes:
 
@@ -51,6 +60,9 @@ Notes:
   `git config --global pull.rebase true`
 - Push/pull can't answer username or password prompts. Use SSH keys or a saved HTTPS login.
 - The right-hand pane is your real file, so you can edit it directly.
+- Both sides scroll together with keys **and** the mouse/trackpad (vertical and sideways), whichever side
+  the pointer is over. Mouse sync is a fix in `lua/config/keymaps.lua` (Neovim skips scrollbind for
+  wheel scrolls over a non-focused window).
 - Inside Diffview only, `<leader>gc` / `<leader>gp` replace LazyVim's usual meanings (git log / GitHub PRs).
 
 ## Inside lazygit
